@@ -123,6 +123,12 @@ export default function App() {
   const reliefType = 'alto'; // Forced to 'alto' per user request (Removed Baixo-Relevo option)
   const [useLibraryQr, setUseLibraryQr] = useState(false); // Default to false (Self-contained) for MakerWorld compatibility
   
+  // Custom Wi-Fi states for easy and functional configuration
+  const [qrMode, setQrMode] = useState<'text' | 'wifi'>('text');
+  const [wifiSsid, setWifiSsid] = useState('MinhaRedeExemplo');
+  const [wifiPassword, setWifiPassword] = useState('SenhaSecreta');
+  const [wifiSecurity, setWifiSecurity] = useState<'WPA' | 'WEP' | 'nopass'>('WPA');
+  
   // Dimensional States (mm)
   const [plateWidth, setPlateWidth] = useState(80);
   const [plateHeight, setPlateHeight] = useState(110);
@@ -166,6 +172,10 @@ export default function App() {
   // Helper dynamic presets
   const applyPreset = (type: 'wifi' | 'id' | 'social') => {
     if (type === 'wifi') {
+      setQrMode('wifi');
+      setWifiSsid('MinhaRedeExemplo');
+      setWifiPassword('SenhaSecreta');
+      setWifiSecurity('WPA');
       setQrLink('WIFI:S:MinhaRedeExemplo;T:WPA;P:SenhaSecreta;;');
       setPlateWidth(90);
       setPlateHeight(105);
@@ -178,6 +188,7 @@ export default function App() {
         { text: 'Aponte a câmera para conectar', fontSize: 3.5, yOffset: -33 },
       ]);
     } else if (type === 'id') {
+      setQrMode('text');
       setQrLink('https://makerworld.com/pt/u/luchesioficial');
       setPlateWidth(75);
       setPlateHeight(115);
@@ -190,6 +201,7 @@ export default function App() {
         { text: 'SIGA E APOIE !', fontSize: 4.0, yOffset: -26 },
       ]);
     } else if (type === 'social') {
+      setQrMode('text');
       setQrLink('https://instagram.com/seu_usuario');
       setPlateWidth(80);
       setPlateHeight(100);
@@ -200,6 +212,34 @@ export default function App() {
         { text: 'COMO IMPRIMIR 3D', fontSize: 6.0, yOffset: -15 },
         { text: 'Visite nossa página e mande DM', fontSize: 4.0, yOffset: -23 },
       ]);
+    }
+  };
+
+  // Special synchronized handlers for easy Wi-Fi building
+  const handleWifiSsidChange = (ssid: string) => {
+    setWifiSsid(ssid);
+    setQrLink(`WIFI:S:${ssid};T:${wifiSecurity};P:${wifiPassword};;`);
+    
+    // Automatically update the plate text line starting with 'REDE:' to keep it synced
+    setTextLines(prev => prev.map(line => {
+      if (line.text.toUpperCase().includes('REDE:')) {
+        return { ...line, text: `REDE: ${ssid}` };
+      }
+      return line;
+    }));
+  };
+
+  const handleWifiPasswordChange = (password: string) => {
+    setWifiPassword(password);
+    setQrLink(`WIFI:S:${wifiSsid};T:${wifiSecurity};P:${password};;`);
+  };
+
+  const handleWifiSecurityChange = (security: 'WPA' | 'WEP' | 'nopass') => {
+    setWifiSecurity(security);
+    if (security === 'nopass') {
+      setQrLink(`WIFI:S:${wifiSsid};T:nopass;P:;;`);
+    } else {
+      setQrLink(`WIFI:S:${wifiSsid};T:${security};P:${wifiPassword};;`);
     }
   };
 
@@ -277,603 +317,804 @@ export default function App() {
     setTextLines(filtered);
   };
 
+  // Sub-Tab selector state for categorizing layout customization options
+  const [customizerTab, setCustomizerTab] = useState<'qr' | 'texts' | 'dimensions' | 'filaments'>('qr');
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-slate-100 font-sans selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-[#07070a] text-slate-100 font-sans selection:bg-blue-600 selection:text-white">
+      {/* GLOWING WORKSPACE BACKGROUND ACCENTS */}
+      <div className="absolute top-0 left-0 right-0 h-[400px] bg-gradient-to-b from-blue-950/15 via-indigo-950/5 to-transparent pointer-events-none -z-10" />
+
       {/* HEADER SECTION */}
-      <header className="border-b border-slate-800/80 bg-[#131313]">
-        <div className="max-w-7xl mx-auto px-4 py-5 sm:flex sm:items-center sm:justify-between">
+      <header className="border-b border-white/5 bg-[#0b0c10]/90 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 py-4.5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-tr from-blue-700 to-blue-500 rounded-xl shadow-lg shadow-blue-500/10">
-              <QrCode size={26} className="text-white" />
+            <div className="p-2 bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 rounded-xl shadow-lg shadow-indigo-500/10 border border-white/10 animate-pulse">
+              <QrCode size={24} className="text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold tracking-tight text-white flex items-center gap-2">
-                Gerador de Placa 3D SCAD com QR Code
-                <span className="hidden md:inline-flex text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded border border-blue-500/20 font-medium">
-                  Makerlab Fatiável
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold tracking-tight text-white font-sans">
+                  Maker3D <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">Placas Customizáveis</span>
+                </h1>
+                <span className="text-[9px] px-1.5 py-0.5 bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/20 font-semibold uppercase tracking-wider">
+                  M600 Pronta
                 </span>
-                <span className="hidden sm:inline-flex text-[10px] px-2 py-0.5 bg-slate-800 text-slate-300 rounded border border-slate-700/50 font-medium">
-                  v1.2.0
-                </span>
-              </h1>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Crie um modelo 3D de placa fatiada com QR Code e baixe diretamente em .STL para fatiar e imprimir!
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Gere e baixe arquivos STL customizados com QR code direto para sua impressora 3D
               </p>
             </div>
-          </div>
-          
-          <div className="mt-3 sm:mt-0 flex gap-2 overflow-x-auto pb-1 sm:pb-0">
-            <button
-              onClick={() => applyPreset('wifi')}
-              className="text-xs px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-200 rounded-lg flex items-center gap-1.5 shrink-0 transition"
-              id="preset-wifi"
-            >
-              <Sparkles size={13} className="text-blue-400" />
-              <span>Placa de Wi-Fi</span>
-            </button>
-            <button
-              onClick={() => applyPreset('social')}
-              className="text-xs px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-200 rounded-lg flex items-center gap-1.5 shrink-0 transition"
-              id="preset-social"
-            >
-              <Sparkles size={13} className="text-indigo-400" />
-              <span>Instagram / Site</span>
-            </button>
           </div>
         </div>
       </header>
 
       {/* DASHBOARD GRID */}
-      <main className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <main className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* LEFT COLUMN: CUSTOMIZATION PANELS (7 Colunas em Desktop) */}
-        <div className="lg:col-span-5 space-y-6">
+        {/* LEFT COLUMN: UNIFIED SMART CUSTOMIZER SIDEBAR */}
+        <div className="lg:col-span-5 space-y-4">
           
-          {/* TAB 1: CORE DATA CONTENT */}
-          <div className="bg-[#131313] rounded-xl border border-slate-800/80 overflow-hidden shadow-xl shadow-black/30">
-            <div className="p-4 bg-[#181818] border-b border-slate-800/80 flex items-center gap-2">
-              <QrCode size={18} className="text-blue-500" />
-              <h2 className="font-semibold text-sm text-white">1. Link & QR Code</h2>
-            </div>
+          {/* UNIFIED MULTI-TAB CONTROLLER */}
+          <div className="bg-[#0f111a]/85 rounded-2xl border border-white/5 overflow-hidden shadow-2xl shadow-black/45 backdrop-blur-xl">
             
-            <div className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
-                  Link ou Conteúdo do QR Code
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={qrLink}
-                    onChange={(e) => setQrLink(e.target.value)}
-                    placeholder="https://exemplo.com ou texto"
-                    className="w-full bg-[#181818] border border-slate-800 focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all font-mono"
-                    id="input-qr-link"
-                  />
-                  {qrLink.startsWith('http') && (
-                    <span className="absolute right-3 top-3 text-[10px] text-green-500 bg-green-500/10 px-1.5 py-0.5 rounded font-mono">
-                      URL Válida
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] text-gray-500 mt-1 block">
-                  Recomendado usar links curtos para manter o padrão do QR mais limpo e fácil de ler.
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
-                    Correção de Erros (QR)
-                  </label>
-                  <select
-                    value={errorCorrection}
-                    onChange={(e) => setErrorCorrection(e.target.value as any)}
-                    className="w-full bg-[#181818] border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white focus:outline-none transition-all"
-                    id="select-qr-correction"
-                  >
-                    <option value="L">L (7% Tolerância - Baixo)</option>
-                    <option value="M">M (15% Tolerância - Médio)</option>
-                    <option value="Q">Q (25% Tolerância - Alto)</option>
-                    <option value="H">H (30% Tolerância - Máximo)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
-                    Modo do Código SCAD
-                  </label>
-                  <select
-                    value={useLibraryQr ? 'lib' : 'self'}
-                    onChange={(e) => setUseLibraryQr(e.target.value === 'lib')}
-                    className="w-full bg-[#181818] border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white focus:outline-none transition-all"
-                    id="select-scad-mode"
-                  >
-                    <option value="self">Autossuficiente (Auto-Matriz)</option>
-                    <option value="lib">Biblioteca (qrcode.scad)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Tips banner about Makerworld customizer limitations */}
-              {!useLibraryQr && (
-                <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800/85 flex gap-2.5 text-xs text-slate-400">
-                  <Info size={15} className="text-blue-400 shrink-0 mt-0.5" />
-                  <p>
-                    <strong className="text-blue-400">Excelente para o MakerWorld:</strong> O modo autossuficiente compila a matriz binária diretamente dentro do arquivo. Isso permite que qualquer pessoa configure o texto sem precisar carregar bibliotecas externas!
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* TAB 2: TEXT LAYERS MANAGER */}
-          <div className="bg-[#131313] rounded-xl border border-slate-800/80 overflow-hidden shadow-xl shadow-black/30">
-            <div className="p-4 bg-[#181818] border-b border-slate-800/80 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Type size={18} className="text-blue-500" />
-                <h2 className="font-semibold text-sm text-white">2. Textos Personalizados</h2>
-              </div>
+            {/* COMPACT SECURE TABS HEADER BAR */}
+            <div className="grid grid-cols-4 border-b border-white/5 bg-slate-950/40 p-1">
               <button
-                onClick={addTextLine}
-                disabled={textLines.length >= 6}
-                className="text-xs px-2.5 py-1 bg-blue-600 hover:bg-blue-500 active:scale-95 disabled:opacity-30 disabled:pointer-events-none text-white font-medium rounded-lg flex items-center gap-1 transition shadow-sm shadow-blue-600/10"
-                id="btn-add-text-line"
+                onClick={() => setCustomizerTab('qr')}
+                className={`py-2.5 px-1 rounded-xl text-[11px] font-bold tracking-wide flex flex-col items-center gap-1.5 transition-all duration-200 ${
+                  customizerTab === 'qr'
+                    ? 'bg-blue-600/15 text-blue-400 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] border border-blue-500/30'
+                    : 'text-slate-400 hover:text-white border border-transparent'
+                }`}
+                title="Link & QR Code"
               >
-                <Plus size={14} />
-                <span>Adicionar Linha</span>
+                <QrCode size={15} />
+                <span>1. Código QR</span>
+              </button>
+
+              <button
+                onClick={() => setCustomizerTab('texts')}
+                className={`py-2.5 px-1 rounded-xl text-[11px] font-bold tracking-wide flex flex-col items-center gap-1.5 transition-all duration-200 ${
+                  customizerTab === 'texts'
+                    ? 'bg-blue-600/15 text-blue-400 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] border border-blue-500/30'
+                    : 'text-slate-400 hover:text-white border border-transparent'
+                }`}
+                title="Mensagens"
+              >
+                <Type size={15} />
+                <span>2. Textos</span>
+              </button>
+
+              <button
+                onClick={() => setCustomizerTab('dimensions')}
+                className={`py-2.5 px-1 rounded-xl text-[11px] font-bold tracking-wide flex flex-col items-center gap-1.5 transition-all duration-200 ${
+                  customizerTab === 'dimensions'
+                    ? 'bg-blue-600/15 text-blue-400 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] border border-blue-500/30'
+                    : 'text-slate-400 hover:text-white border border-transparent'
+                }`}
+                title="Tamanho Geral"
+              >
+                <Sliders size={15} />
+                <span>3. Dimensões</span>
+              </button>
+
+              <button
+                onClick={() => setCustomizerTab('filaments')}
+                className={`py-2.5 px-1 rounded-xl text-[11px] font-bold tracking-wide flex flex-col items-center gap-1.5 transition-all duration-200 ${
+                  customizerTab === 'filaments'
+                    ? 'bg-blue-600/15 text-blue-400 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] border border-blue-500/30'
+                    : 'text-slate-400 hover:text-white border border-transparent'
+                }`}
+                title="Exibição Visual & Simulação"
+              >
+                <Palette size={15} />
+                <span>4. Aparência</span>
               </button>
             </div>
 
-            <div className="p-5 space-y-4">
-              {textLines.length === 0 ? (
-                <div className="text-center py-6 text-gray-500 text-xs">
-                  Nenhuma linha de texto activa. Clique em "Adicionar Linha" acima.
-                </div>
-              ) : (
-                <div className="space-y-3.5 max-h-[280px] overflow-y-auto pr-1">
-                  {textLines.map((line, index) => (
-                    <div 
-                      key={index} 
-                      className="bg-[#181818] p-3.5 rounded-xl border border-slate-800 relative group space-y-2.5"
-                      id={`text-line-item-${index}`}
+            {/* PERSISTENT SCAN WARNING ACCROSS ALL TABS */}
+            <div className="mx-5 mt-4 p-3 bg-amber-500/10 border border-amber-500/15 rounded-xl flex items-start gap-2.5 text-xs text-amber-200">
+              <span className="text-sm leading-none shrink-0 mt-0.5">⚠️</span>
+              <div className="space-y-0.5">
+                <p className="font-bold text-amber-300 text-[11px] uppercase tracking-wider">Aviso importante: Teste o QR Code!</p>
+                <p className="text-[10px] text-amber-200/80 leading-relaxed font-sans">
+                  Use a câmera do seu celular para testar a leitura do QR Code na tela antes de gastar filamento imprimindo seu modelo 3D.
+                </p>
+              </div>
+            </div>
+
+            {/* TAB CONTENT SPACE */}
+            <div className="p-5">
+              
+              {/* SUB TAB: QR CODE & CONEXÃO */}
+              {customizerTab === 'qr' && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div className="flex items-center gap-2 mb-1">
+                    <QrCode size={16} className="text-blue-400" />
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300">Link & Configuração do QR</h3>
+                  </div>
+
+                  {/* QR Mode Toggle Segment */}
+                  <div className="grid grid-cols-2 gap-1 bg-slate-950/50 p-1 rounded-xl border border-white/5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQrMode('text');
+                        if (qrLink.startsWith('WIFI:')) {
+                          setQrLink('https://makerworld.com');
+                        }
+                      }}
+                      className={`py-1.5 rounded-lg text-[10px] uppercase font-bold tracking-wider transition-all duration-150 ${
+                        qrMode === 'text'
+                          ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200 border border-transparent'
+                      }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                          Linha {index + 1}
-                        </span>
-                        <button
-                          onClick={() => removeTextLine(index)}
-                          className="text-gray-500 hover:text-red-400 opacity-60 group-hover:opacity-100 transition duration-150"
-                          title="Remover linha"
-                          id={`btn-remove-text-${index}`}
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                      🌐 Link / Texto
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQrMode('wifi');
+                        const newLink = `WIFI:S:${wifiSsid};T:${wifiSecurity};P:${wifiPassword};;`;
+                        setQrLink(newLink);
+                      }}
+                      className={`py-1.5 rounded-lg text-[10px] uppercase font-bold tracking-wider transition-all duration-150 ${
+                        qrMode === 'wifi'
+                          ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200 border border-transparent'
+                      }`}
+                    >
+                      📡 Rede Wi-Fi
+                    </button>
+                  </div>
+
+                  {qrMode === 'text' ? (
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-slate-400">
+                        Link ou Conteúdo do QR Code
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={qrLink}
+                          onChange={(e) => setQrLink(e.target.value)}
+                          placeholder="https://exemplo.com ou texto"
+                          className="w-full bg-[#141622] border border-white/5 focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500/30 transition-all font-mono shadow-inner"
+                          id="input-qr-link"
+                        />
+                        {qrLink.startsWith('http') && (
+                          <span className="absolute right-3.5 top-3 text-[9px] text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full font-mono font-medium border border-green-500/20">
+                            URL Ativa
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-slate-500 mt-1 block">
+                        💡 Dica de fatiamento: Links menores geram QR mais eficientes e fáceis de fatiar/ler.
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 bg-[#141622]/60 p-3.5 rounded-xl border border-white/5 text-xs">
+                      <span className="block text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">
+                        🔑 Configuração Simplificada de Wi-Fi
+                      </span>
+                      
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-semibold text-slate-400">
+                          Nome da Rede (SSID):
+                        </label>
+                        <input
+                          type="text"
+                          value={wifiSsid}
+                          onChange={(e) => handleWifiSsidChange(e.target.value)}
+                          placeholder="Ex: MinhaRedeExemplo"
+                          className="w-full bg-[#0a0b10] border border-white/5 focus:border-blue-500/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-all font-mono"
+                          id="wifi-ssid-input"
+                        />
                       </div>
 
-                      <div className="grid grid-cols-12 gap-2">
-                        {/* Text Field */}
-                        <div className="col-span-12">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="block text-[11px] font-semibold text-slate-400">
+                            Senha do Wi-Fi:
+                          </label>
                           <input
                             type="text"
-                            value={line.text}
-                            onChange={(e) => handleTextChange(index, e.target.value)}
-                            placeholder={`Escreva aqui o texto da linha ${index + 1}`}
-                            className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none transition-all"
-                            id={`input-text-val-${index}`}
+                            value={wifiPassword}
+                            onChange={(e) => handleWifiPasswordChange(e.target.value)}
+                            disabled={wifiSecurity === 'nopass'}
+                            placeholder={wifiSecurity === 'nopass' ? 'Sem senha' : 'Ex: Senha123'}
+                            className="w-full bg-[#0a0b10] border border-white/5 focus:border-blue-500/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-all font-mono disabled:opacity-40"
+                            id="wifi-password-input"
                           />
                         </div>
 
-                        {/* Font Size Selector */}
-                        <div className="col-span-6 space-y-1">
-                          <label className="text-[10px] text-gray-400 block font-semibold">Tamanho (mm)</label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="range"
-                              min="2"
-                              max="16"
-                              step="0.5"
-                              value={line.fontSize}
-                              onChange={(e) => handleFontSizeChange(index, Number(e.target.value))}
-                              className="w-full h-1.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                              id={`slider-font-size-${index}`}
-                            />
-                            <span className="text-xs text-gray-300 font-mono w-10 text-right">{line.fontSize}</span>
-                          </div>
-                        </div>
-
-                        {/* Y Offset / Position */}
-                        <div className="col-span-6 space-y-1">
-                          <label className="text-[10px] text-gray-400 block font-semibold">Posição Y (mm)</label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="range"
-                              min="-100"
-                              max="100"
-                              step="1"
-                              value={line.yOffset}
-                              onChange={(e) => handleYOffsetChange(index, Number(e.target.value))}
-                              className="w-full h-1.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                              id={`slider-font-y-${index}`}
-                            />
-                            <span className="text-xs text-gray-300 font-mono w-10 text-right">{line.yOffset}</span>
-                          </div>
+                        <div className="space-y-1">
+                          <label className="block text-[11px] font-semibold text-slate-400">
+                            Segurança:
+                          </label>
+                          <select
+                            value={wifiSecurity}
+                            onChange={(e) => handleWifiSecurityChange(e.target.value as any)}
+                            className="w-full bg-[#0a0b10] border border-white/5 focus:border-blue-500/50 rounded-lg px-2.5 py-2 text-white focus:outline-none transition-all cursor-pointer"
+                            id="wifi-security-select"
+                          >
+                            <option value="WPA">WPA / WPA2 (Comum)</option>
+                            <option value="WEP">WEP (Antigo)</option>
+                            <option value="nopass">Sem Senha (Aberta)</option>
+                          </select>
                         </div>
                       </div>
+
+                      <div className="text-[10px] text-slate-500 bg-[#07070a]/40 p-2 rounded border border-white/5 font-mono leading-relaxed break-all">
+                        <span className="text-slate-400 block font-bold mb-0.5">Código Técnico Gerado:</span>
+                        {qrLink}
+                      </div>
                     </div>
-                  ))}
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4 pt-1">
+                    <div className="space-y-1">
+                      <label className="block text-xs font-semibold text-slate-400">
+                        Correção de Erros
+                      </label>
+                      <select
+                        value={errorCorrection}
+                        onChange={(e) => setErrorCorrection(e.target.value as any)}
+                        className="w-full bg-[#141622] border border-white/5 focus:border-blue-500/50 rounded-xl px-3 py-2 text-xs text-white focus:outline-none transition-all cursor-pointer"
+                        id="select-qr-correction"
+                      >
+                        <option value="L">L (7% Tolerância - Rápido)</option>
+                        <option value="M">M (15% Tolerância - Ideal)</option>
+                        <option value="Q">Q (25% Tolerância - Forte)</option>
+                        <option value="H">H (30% Tolerância - Máximo)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-xs font-semibold text-slate-400">
+                        Compilação OpenSCAD
+                      </label>
+                      <select
+                        value={useLibraryQr ? 'lib' : 'self'}
+                        onChange={(e) => setUseLibraryQr(e.target.value === 'lib')}
+                        className="w-full bg-[#141622] border border-white/5 focus:border-blue-500/50 rounded-xl px-3 py-2 text-xs text-white focus:outline-none transition-all cursor-pointer"
+                        id="select-scad-mode"
+                      >
+                        <option value="self">Auto-Matriz (Ideal para MakerWorld)</option>
+                        <option value="lib">Biblioteca Externa (qrcode.scad)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {!useLibraryQr && (
+                    <div className="bg-blue-500/5 p-3.5 rounded-xl border border-blue-500/10 flex gap-3 text-xs text-slate-400 mt-2">
+                      <Info size={16} className="text-blue-400 shrink-0 mt-0.5" />
+                      <p className="leading-relaxed">
+                        <strong className="text-blue-300">Modo Auto-Matriz:</strong> Compila a matriz QR diretamente nas coordenadas do OpenSCAD, permitindo que a peça seja fatiada perfeitamente no Makerworld sem qualquer plug-in!
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
-              <div className="pt-2 border-t border-slate-800 grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1">
-                    <Type size={12} className="text-blue-500" />
-                    Fonte dos Textos
-                  </label>
-                  <select
-                    value={
-                      AVAILABLE_FONTS.some((f) => f.value === fontName)
-                        ? fontName
-                        : 'custom'
-                    }
-                    onChange={(e) => {
-                      if (e.target.value === 'custom') {
-                        setFontName('Arial:style=Bold');
-                      } else {
-                        setFontName(e.target.value);
-                      }
-                    }}
-                    style={{
-                      fontFamily: AVAILABLE_FONTS.find((f) => f.value === fontName)?.family || 'sans-serif'
-                    }}
-                    className="w-full bg-[#181818] border border-slate-800 focus:border-blue-500 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none transition-all cursor-pointer"
-                    id="select-font-style"
-                  >
-                    {AVAILABLE_FONTS.map((font) => (
-                      <option
-                        key={font.value}
-                        value={font.value}
-                        style={{ fontFamily: font.family }}
-                        className="bg-[#181818] text-white"
-                      >
-                        {font.name}
-                      </option>
-                    ))}
-                    <option value="custom" className="bg-[#181818] text-white font-sans">
-                      ✏️ Outra (Digitar Nome)...
-                    </option>
-                  </select>
+              {/* SUB TAB: CUSTOMIZED TEXT CHANNELS */}
+              {customizerTab === 'texts' && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <Type size={16} className="text-blue-400" />
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300">Linhas de Texto</h3>
+                    </div>
+                    <button
+                      onClick={addTextLine}
+                      disabled={textLines.length >= 6}
+                      className="text-[10px] px-2.5 py-1.5 bg-blue-600/20 hover:bg-blue-600/35 text-blue-400 rounded-lg flex items-center gap-1.5 transition-all font-semibold uppercase border border-blue-500/20 disabled:opacity-20 disabled:pointer-events-none"
+                      id="btn-add-text-line"
+                    >
+                      <Plus size={12} />
+                      <span>Adicionar Linha</span>
+                    </button>
+                  </div>
 
-                  {!AVAILABLE_FONTS.some((f) => f.value === fontName) && (
-                    <input
-                      type="text"
-                      value={fontName}
-                      onChange={(e) => setFontName(e.target.value)}
-                      placeholder="Ex: Arial:style=Bold"
-                      className="w-full bg-[#0d0d0d] border border-blue-500/45 focus:border-blue-500 rounded-xl px-2.5 py-1.5 text-[11px] text-white focus:outline-none transition-all font-mono mt-1"
-                      id="input-font-name-custom"
-                    />
+                  {textLines.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500 text-xs bg-[#141622]/40 rounded-xl border border-white/5">
+                      Nenhum texto adicionado. Clique no botão de incluir acima.
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 customize-scrollbar">
+                      {textLines.map((line, index) => (
+                        <div 
+                          key={index} 
+                          className="bg-[#141622]/80 p-3 rounded-xl border border-white/5 relative group space-y-2.5 hover:border-slate-800 transition duration-150"
+                          id={`text-line-item-${index}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                              Elemento #{index + 1}
+                            </span>
+                            <button
+                              onClick={() => removeTextLine(index)}
+                              className="text-slate-500 hover:text-red-400 opacity-70 hover:opacity-100 transition duration-150 p-0.5"
+                              title="Remover linha"
+                              id={`btn-remove-text-${index}`}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+
+                          <div className="space-y-2.5">
+                            {/* Text Input */}
+                            <input
+                              type="text"
+                              value={line.text}
+                              onChange={(e) => handleTextChange(index, e.target.value)}
+                              placeholder={`Texto da linha ${index + 1}`}
+                              className="w-full bg-slate-950/60 border border-white/5 focus:border-blue-500/50 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none transition-all"
+                              id={`input-text-val-${index}`}
+                            />
+
+                            <div className="grid grid-cols-2 gap-3.5">
+                              {/* Scale slider */}
+                              <div className="space-y-0.5">
+                                <div className="flex justify-between text-[9px] text-slate-400 font-medium">
+                                  <span>Tamanho</span>
+                                  <span className="font-mono text-blue-400 font-bold">{line.fontSize}mm</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="2"
+                                  max="16"
+                                  step="0.5"
+                                  value={line.fontSize}
+                                  onChange={(e) => handleFontSizeChange(index, Number(e.target.value))}
+                                  className="w-full h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                  id={`slider-font-size-${index}`}
+                                />
+                              </div>
+
+                              {/* Y coord slide */}
+                              <div className="space-y-0.5">
+                                <div className="flex justify-between text-[9px] text-slate-400 font-medium">
+                                  <span>Posição Y</span>
+                                  <span className="font-mono text-blue-400 font-bold">{line.yOffset}mm</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="-100"
+                                  max="100"
+                                  step="1"
+                                  value={line.yOffset}
+                                  onChange={(e) => handleYOffsetChange(index, Number(e.target.value))}
+                                  className="w-full h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                  id={`slider-font-y-${index}`}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
-                    Espessura Texto (mm)
-                  </label>
-                  <input
-                    type="number"
-                    min="0.2"
-                    max="6"
-                    step="0.1"
-                    value={textReliefDepth}
-                    onChange={(e) => setTextReliefDepth(Math.max(0.1, Number(e.target.value)))}
-                    className="w-full bg-[#181818] border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none transition-all font-mono"
-                    id="input-text-depth"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* TAB 3: DIMENSIONS & SPECS */}
-          <div className="bg-[#131313] rounded-xl border border-slate-800/80 overflow-hidden shadow-xl shadow-black/30">
-            <div className="p-4 bg-[#181818] border-b border-slate-800/80 flex items-center gap-2">
-              <Sliders size={18} className="text-blue-500" />
-              <h2 className="font-semibold text-sm text-white">3. Dimensões do Quadrado & Placa</h2>
-            </div>
+                  {/* FONT FAMILY SELECTION (CUSTOM LIST EXPRESSED PRETTILY) */}
+                  <div className="pt-3 border-t border-white/5 space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+                          <Type size={12} className="text-blue-400" />
+                          Estilo da Fonte
+                        </label>
+                        <select
+                          value={
+                            AVAILABLE_FONTS.some((f) => f.value === fontName)
+                              ? fontName
+                              : 'custom'
+                          }
+                          onChange={(e) => {
+                            if (e.target.value === 'custom') {
+                              setFontName('Arial:style=Bold');
+                            } else {
+                              setFontName(e.target.value);
+                            }
+                          }}
+                          style={{
+                            fontFamily: AVAILABLE_FONTS.find((f) => f.value === fontName)?.family || 'sans-serif'
+                          }}
+                          className="w-full bg-[#141622] border border-white/5 focus:border-blue-500/50 rounded-xl px-2.5 py-1.8 text-xs text-white focus:outline-none transition-all cursor-pointer"
+                          id="select-font-style"
+                        >
+                          {AVAILABLE_FONTS.map((font) => (
+                            <option
+                              key={font.value}
+                              value={font.value}
+                              style={{ fontFamily: font.family }}
+                              className="bg-[#0b0c10] text-white"
+                            >
+                              {font.name}
+                            </option>
+                          ))}
+                          <option value="custom" className="bg-[#0b0c10] text-white font-sans">
+                            ✏️ Outra (Digitar Nome)...
+                          </option>
+                        </select>
+                      </div>
 
-            <div className="p-5 space-y-4">
-              {/* Plate size controls */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold tracking-wider text-gray-400 mb-1">
-                    Largura da Placa (mm)
-                  </label>
-                  <input
-                    type="number"
-                    value={plateWidth}
-                    onChange={(e) => setPlateWidth(Math.max(10, Number(e.target.value)))}
-                    className="w-full bg-[#181818] border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    id="input-plate-width"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold tracking-wider text-gray-400 mb-1">
-                    Altura da Placa (mm)
-                  </label>
-                  <input
-                    type="number"
-                    value={plateHeight}
-                    onChange={(e) => setPlateHeight(Math.max(10, Number(e.target.value)))}
-                    className="w-full bg-[#181818] border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    id="input-plate-height"
-                  />
-                </div>
-              </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-semibold text-slate-400">
+                          Espessura Texto (mm)
+                        </label>
+                        <input
+                          type="number"
+                          min="0.2"
+                          max="6"
+                          step="0.1"
+                          value={textReliefDepth}
+                          onChange={(e) => setTextReliefDepth(Math.max(0.1, Number(e.target.value)))}
+                          className="w-full bg-[#141622] border border-white/5 focus:border-blue-500/50 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none font-mono"
+                          id="input-text-depth"
+                        />
+                      </div>
+                    </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold tracking-wider text-gray-400 mb-1">
-                    Espessura da Base (mm)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.2"
-                    value={plateThickness}
-                    onChange={(e) => setPlateThickness(Math.max(0.4, Number(e.target.value)))}
-                    className="w-full bg-[#181818] border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    id="input-plate-thickness"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold tracking-wider text-gray-400 mb-1">
-                    Raio do Canto (mm)
-                  </label>
-                  <input
-                    type="number"
-                    value={cornerRadius}
-                    onChange={(e) => setCornerRadius(Math.max(0, Number(e.target.value)))}
-                    className="w-full bg-[#181818] border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    id="input-corner-radius"
-                  />
-                </div>
-              </div>
-
-              <div className="border-t border-slate-800 pt-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                   <div>
-                    <label className="block text-xs font-semibold tracking-wider text-gray-400 mb-1">
-                      Tamanho QR Code (mm)
-                    </label>
-                    <input
-                      type="number"
-                      value={qrSizeMm}
-                      onChange={(e) => setQrSizeMm(Math.max(10, Number(e.target.value)))}
-                      className="w-full bg-[#181818] border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      id="input-qr-size"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold tracking-wider text-gray-400 mb-1">
-                      Elevação QR Code (mm)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={qrReliefDepth}
-                      onChange={(e) => setQrReliefDepth(Math.max(0.1, Number(e.target.value)))}
-                      className="w-full bg-[#181818] border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      id="input-qr-depth"
-                    />
+                    {!AVAILABLE_FONTS.some((f) => f.value === fontName) && (
+                      <div className="space-y-1">
+                        <label className="block text-[10px] text-slate-400 font-semibold">Nome Customizado no OpenSCAD:</label>
+                        <input
+                          type="text"
+                          value={fontName}
+                          onChange={(e) => setFontName(e.target.value)}
+                          placeholder="Ex: Arial:style=Bold"
+                          className="w-full bg-[#07070a] border border-blue-500/30 focus:border-blue-500 rounded-xl px-3 py-1.8 text-[11px] text-white focus:outline-none transition-all font-mono"
+                          id="input-font-name-custom"
+                        />
+                        <span className="text-[9px] text-slate-500 block">Identifica a fonte que a sua instalação local do OpenSCAD utilizará.</span>
+                      </div>
+                    )}
                   </div>
                 </div>
+              )}
 
-                <div>
-                  <label className="block text-xs font-semibold tracking-wider text-gray-400 mb-1">
-                    Posicionamento Vertical do QR (Y mm)
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="range"
-                      min="-100"
-                      max="100"
-                      step="1"
-                      value={qrYOffset}
-                      onChange={(e) => setQrYOffset(Number(e.target.value))}
-                      className="w-full h-1.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                      id="slider-qr-y"
-                    />
-                    <span className="text-xs font-mono text-gray-300 w-12 text-right">{qrYOffset} mm</span>
+              {/* SUB TAB: PHYSICAL GEOM GRID */}
+              {customizerTab === 'dimensions' && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Sliders size={16} className="text-blue-400" />
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300">Medidas Externas & Espessura</h3>
                   </div>
-                </div>
-              </div>
 
-              {/* Raised rim frame controls */}
-              <div className="border-t border-slate-800 pt-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="block text-xs font-semibold text-white">Moldura/Borda Externa</span>
-                    <span className="text-[10px] text-gray-400">Ativa um detalhe elevado ao redor da placa</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={hasBorder}
-                    onChange={(e) => setHasBorder(e.target.checked)}
-                    className="w-5 h-5 bg-[#181818] border border-slate-800 text-blue-500 rounded cursor-pointer accent-blue-500"
-                    id="checkbox-has-border"
-                  />
-                </div>
-
-                {hasBorder && (
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-bold text-gray-400 mb-1">
-                        Largura da Borda (mm)
+                    <div className="space-y-1">
+                      <label className="block text-xs font-semibold text-slate-400">
+                        Largura da Placa (mm)
                       </label>
                       <input
                         type="number"
-                        step="0.5"
-                        value={borderWidth}
-                        onChange={(e) => setBorderWidth(Math.max(0.1, Number(e.target.value)))}
-                        className="w-full bg-[#181818] border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none"
-                        id="input-border-width"
+                        value={plateWidth}
+                        onChange={(e) => setPlateWidth(Math.max(10, Number(e.target.value)))}
+                        className="w-full bg-[#141622] border border-white/5 focus:border-blue-500/50 rounded-xl px-3 py-1.8 text-xs text-white font-mono focus:outline-none"
+                        id="input-plate-width"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-gray-400 mb-1">
-                        Espessura da Borda (mm)
+                    <div className="space-y-1">
+                      <label className="block text-xs font-semibold text-slate-400">
+                        Altura da Placa (mm)
                       </label>
                       <input
                         type="number"
-                        step="0.1"
-                        value={borderDepth}
-                        onChange={(e) => setBorderDepth(Math.max(0.1, Number(e.target.value)))}
-                        className="w-full bg-[#181818] border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none"
-                        id="input-border-depth"
+                        value={plateHeight}
+                        onChange={(e) => setPlateHeight(Math.max(10, Number(e.target.value)))}
+                        className="w-full bg-[#141622] border border-white/5 focus:border-blue-500/50 rounded-xl px-3 py-1.8 text-xs text-white font-mono focus:outline-none"
+                        id="input-plate-height"
                       />
                     </div>
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
 
-          {/* TAB 4: PRINTING PRESETS STYLE */}
-          <div className="bg-[#131313] rounded-xl border border-slate-800/80 overflow-hidden shadow-xl shadow-black/30">
-            <div className="p-4 bg-[#181818] border-b border-slate-800/80 flex items-center gap-2">
-              <Layers size={18} className="text-blue-500" />
-              <h2 className="font-semibold text-sm text-white">4. Engenharia de Relevo & Cores</h2>
-            </div>
-
-            <div className="p-5 space-y-4">
-              {/* Color Filament simulation */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                  Simulador de Filamento (Cores do Monitor)
-                </label>
-                
-                <div className="space-y-3 bg-[#181818] p-3.5 rounded-xl border border-slate-800">
-                  <div>
-                    <span className="text-[10px] text-gray-400 font-bold block mb-1.5">Cor do Filamento Base:</span>
-                    <div className="flex flex-wrap gap-2">
-                      {PLA_COLORS.map((col) => (
-                        <button
-                           key={col.hex}
-                           onClick={() => setColorBase(col.hex)}
-                           className={`w-6 h-6 rounded-full border transition-all ${
-                             colorBase === col.hex ? 'ring-2 ring-blue-500 scale-110 border-white' : 'border-slate-800'
-                           }`}
-                           style={{ backgroundColor: col.hex }}
-                           title={col.name}
-                        />
-                      ))}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="block text-xs font-semibold text-slate-400">
+                        Base / Prato (mm)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.2"
+                        value={plateThickness}
+                        onChange={(e) => setPlateThickness(Math.max(0.4, Number(e.target.value)))}
+                        className="w-full bg-[#141622] border border-white/5 focus:border-blue-500/50 rounded-xl px-3 py-1.8 text-xs text-white font-mono focus:outline-none"
+                        id="input-plate-thickness"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-semibold text-slate-400">
+                        Raio dos Cantos (mm)
+                      </label>
+                      <input
+                        type="number"
+                        value={cornerRadius}
+                        onChange={(e) => setCornerRadius(Math.max(0, Number(e.target.value)))}
+                        className="w-full bg-[#141622] border border-white/5 focus:border-blue-500/50 rounded-xl px-3 py-1.8 text-xs text-white font-mono focus:outline-none"
+                        id="input-corner-radius"
+                      />
                     </div>
                   </div>
 
-                  <div>
-                    <span className="text-[10px] text-gray-400 font-bold block mb-1.5">Cor do Filamento dos Detalhes / QR:</span>
-                    <div className="flex flex-wrap gap-2">
-                      {PLA_COLORS.map((col) => (
-                        <button
-                           key={col.hex}
-                           onClick={() => setColorDetails(col.hex)}
-                           className={`w-6 h-6 rounded-full border transition-all ${
-                             colorDetails === col.hex ? 'ring-2 ring-blue-500 scale-110 border-white' : 'border-slate-800'
-                           }`}
-                           style={{ backgroundColor: col.hex }}
-                           title={col.name}
+                  <div className="border-t border-white/5 pt-3.5 space-y-3.5">
+                    <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Posicionamento do QR code</span>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="block text-xs font-semibold text-slate-400">
+                          Tamanho do QR (mm)
+                        </label>
+                        <input
+                          type="number"
+                          value={qrSizeMm}
+                          onChange={(e) => setQrSizeMm(Math.max(10, Number(e.target.value)))}
+                          className="w-full bg-[#141622] border border-white/5 focus:border-blue-500/50 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none"
+                          id="input-qr-size"
                         />
-                      ))}
+                      </div>
+                      <div className="space-y-1">
+                        <label className="block text-xs font-semibold text-slate-400">
+                          Elevação QR (mm)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={qrReliefDepth}
+                          onChange={(e) => setQrReliefDepth(Math.max(0.1, Number(e.target.value)))}
+                          className="w-full bg-[#141622] border border-white/5 focus:border-blue-500/50 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none"
+                          id="input-qr-depth"
+                        />
+                      </div>
                     </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs font-semibold text-slate-400">
+                        <span>Deslocamento Vertical (Y)</span>
+                        <span className="font-mono text-blue-400 font-bold">{qrYOffset} mm</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="range"
+                          min="-100"
+                          max="100"
+                          step="1"
+                          value={qrYOffset}
+                          onChange={(e) => setQrYOffset(Number(e.target.value))}
+                          className="w-full h-1.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                          id="slider-qr-y"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* FRAME INTEGRITY SETTINGS */}
+                  <div className="border-t border-white/5 pt-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="block text-xs font-semibold text-white">Moldura/Borda Externa</span>
+                        <span className="text-[10px] text-slate-400">Adiciona uma borda elevada para acabamento</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={hasBorder}
+                        onChange={(e) => setHasBorder(e.target.checked)}
+                        className="w-4.5 h-4.5 bg-[#141622] border border-white/5 text-blue-500 rounded cursor-pointer accent-blue-500 focus:ring-0"
+                        id="checkbox-has-border"
+                      />
+                    </div>
+
+                    {hasBorder && (
+                      <div className="grid grid-cols-2 gap-4 animate-fadeIn">
+                        <div className="space-y-1">
+                          <label className="block text-[10px] uppercase font-bold text-slate-400">
+                            Largura Borda (mm)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.5"
+                            value={borderWidth}
+                            onChange={(e) => setBorderWidth(Math.max(0.1, Number(e.target.value)))}
+                            className="w-full bg-[#141622] border border-white/5 focus:border-blue-500 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none"
+                            id="input-border-width"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="block text-[10px] uppercase font-bold text-slate-400">
+                            Espessura Borda (mm)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={borderDepth}
+                            onChange={(e) => setBorderDepth(Math.max(0.1, Number(e.target.value)))}
+                            className="w-full bg-[#141622] border border-white/5 focus:border-blue-500 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none"
+                            id="input-border-depth"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* SUB TAB: FILAMENT CHROME & PALETTE */}
+              {customizerTab === 'filaments' && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Palette size={16} className="text-blue-400" />
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300">Simulador de Filamento PLA</h3>
+                  </div>
+
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Personalize as cores mostradas no visualizador 3D para combinar exatamente com as bobinas de filamento que você colocará na sua impressora.
+                  </p>
+
+                  <div className="space-y-4 bg-[#141622]/60 p-4 rounded-xl border border-white/5">
+                    <div className="space-y-2">
+                      <span className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider block">Filamento Base (Fundo da placa):</span>
+                      <div className="grid grid-cols-4 gap-2">
+                        {PLA_COLORS.map((col) => (
+                          <button
+                            key={col.hex}
+                            onClick={() => setColorBase(col.hex)}
+                            className={`py-2 px-1 rounded-lg border text-[10px] font-medium flex flex-col items-center gap-1.5 transition-all text-slate-300 ${
+                              colorBase === col.hex 
+                                ? 'bg-[#0b0c10] border-blue-500/80 text-blue-400 shadow-md shadow-blue-500/10' 
+                                : 'bg-[#07070a]/50 border-transparent hover:border-slate-800'
+                            }`}
+                            title={col.name}
+                          >
+                            <span className="w-5.5 h-5.5 rounded-full border border-white/10 shadow-inner" style={{ backgroundColor: col.hex }} />
+                            <span className="truncate max-w-[55px] text-[8px]">{col.name.split(' ')[0]}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-1 border-t border-white/5">
+                      <span className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider block">Filamento de Detalhes (QR & Textos):</span>
+                      <div className="grid grid-cols-4 gap-2">
+                        {PLA_COLORS.map((col) => (
+                          <button
+                            key={col.hex}
+                            onClick={() => setColorDetails(col.hex)}
+                            className={`py-2 px-1 rounded-lg border text-[10px] font-medium flex flex-col items-center gap-1.5 transition-all text-slate-300 ${
+                              colorDetails === col.hex 
+                                ? 'bg-[#0b0c10] border-blue-500/80 text-blue-400 shadow-md shadow-blue-500/10' 
+                                : 'bg-[#07070a]/50 border-transparent hover:border-slate-800'
+                            }`}
+                            title={col.name}
+                          >
+                            <span className="w-5.5 h-5.5 rounded-full border border-white/10 shadow-inner" style={{ backgroundColor: col.hex }} />
+                            <span className="truncate max-w-[55px] text-[8px]">{col.name.split(' ')[0]}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/10 text-[11px] text-slate-400 leading-normal">
+                    💡 <strong className="text-indigo-300">Dica:</strong> Para que o celular leia o código sem dificuldades de foco, prefira cores com contraste severo. Bases brancas, amarelas ou cinza-claro funcionam melhor com detalhes em preto, azul-marinho ou vermelho-escuro.
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
+
+
           
         </div>
 
-        {/* RIGHT COLUMN: RENDERER & CODE SCREEN PANEL (7 Colunas em Desktop) */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
+        {/* RIGHT COLUMN: RENDERER VIEWPORT & USER GUIDE */}
+        <div className="lg:col-span-7 flex flex-col gap-5">
           
           {/* TAB HEADERS FOR VIEWPANEL */}
-          <div className="bg-[#131313] rounded-xl border border-slate-800/80 overflow-hidden shadow-xl shadow-black/30 flex flex-col flex-grow">
-            <div className="flex bg-[#181818] border-b border-slate-800/80 justify-between items-center px-4">
-              <div className="flex gap-2">
+          <div className="bg-[#0f111a]/85 rounded-2xl border border-white/5 overflow-hidden shadow-2xl flex flex-col flex-grow backdrop-blur-xl">
+            <div className="flex bg-slate-950/40 border-b border-white/5 justify-between items-center px-4 relative">
+              <div className="flex gap-1.5">
                 <button
                   onClick={() => setActiveTab('preview')}
-                  className={`px-4 py-4.5 text-xs font-semibold tracking-wide flex items-center gap-1.5 border-b-2 transition-all ${
+                  className={`px-4.5 py-4 text-xs font-bold tracking-wider uppercase flex items-center gap-2 border-b-2 transition-all ${
                     activeTab === 'preview'
-                      ? 'border-blue-500 text-white'
-                      : 'border-transparent text-gray-400 hover:text-white'
+                      ? 'border-blue-500 text-blue-400'
+                      : 'border-transparent text-slate-400 hover:text-white'
                   }`}
                   id="tab-btn-preview"
                 >
-                  <Eye size={15} />
-                  <span>Visualizar 3D Real</span>
+                  <Eye size={14} />
+                  <span>Editor 3D</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('guide')}
-                  className={`px-4 py-4.5 text-xs font-semibold tracking-wide flex items-center gap-1.5 border-b-2 transition-all ${
+                  className={`px-4.5 py-4 text-xs font-bold tracking-wider uppercase flex items-center gap-2 border-b-2 transition-all ${
                     activeTab === 'guide'
-                      ? 'border-blue-500 text-white'
-                      : 'border-transparent text-gray-400 hover:text-white'
+                      ? 'border-blue-500 text-blue-400'
+                      : 'border-transparent text-slate-400 hover:text-white'
                   }`}
                   id="tab-btn-guide"
                 >
-                  <Printer size={15} />
-                  <span>Instruções de Impressão</span>
+                  <Printer size={14} />
+                  <span>Manual Slicer</span>
                 </button>
               </div>
 
               <div className="flex items-center gap-2 py-2 sm:py-0">
                 <button
                   onClick={() => threeRef.current?.downloadSTL()}
-                  className="text-xs bg-blue-600 hover:bg-blue-500 font-semibold text-white px-3.5 py-1.8 rounded-lg flex items-center gap-1.5 active:scale-95 transition shadow-sm shadow-blue-600/10 hover:shadow-blue-500/20"
+                  className="text-xs bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 font-bold text-white px-4 py-2 rounded-xl flex items-center gap-2 active:scale-95 transition-all shadow-lg shadow-indigo-500/10 border border-white/5 hover:border-white/10"
                   id="btn-download-stl-header"
                 >
-                  <Download size={13} />
-                  <span>Baixar Placa (.stl)</span>
+                  <Download size={13} className="animate-bounce-slow" />
+                  <span>Download .STL</span>
                 </button>
               </div>
             </div>
 
             {/* TAB CONTAINER CONTENT */}
-            <div className="p-5 flex-grow bg-[#0f0f0f]">
+            <div className="p-4 flex-grow bg-slate-950/20">
+              
               {activeTab === 'preview' && (
-                <div className="space-y-4">
-                  <ThreePreview
-                    ref={threeRef}
-                    plateWidth={plateWidth}
-                    plateHeight={plateHeight}
-                    plateThickness={plateThickness}
-                    cornerRadius={cornerRadius}
-                    qrData={qrData}
-                    qrSizeMm={qrSizeMm}
-                    qrReliefDepth={qrReliefDepth}
-                    qrYOffset={qrYOffset}
-                    reliefType={reliefType}
-                    textReliefDepth={textReliefDepth}
-                    fontName={fontName}
-                    textLines={textLines}
-                    hasBorder={hasBorder}
-                    borderWidth={borderWidth}
-                    borderDepth={borderDepth}
-                    colorBase={colorBase}
-                    colorDetails={colorDetails}
-                  />
+                <div className="space-y-4 relative">
+                  
+                  {/* FLOATING CAMERA CONTROL OVERLAY & REAL-TIME DIMENSIONAL BOX */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-1">
+                    <div className="bg-[#121422]/90 backdrop-blur-md rounded-xl border border-white/5 px-3.5 py-2 flex items-center justify-between text-[11px] text-slate-300">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                        <span className="font-semibold uppercase tracking-wider text-[10px] text-slate-400">Gabarito:</span>
+                        <span className="font-mono text-white font-bold">{plateWidth}x{plateHeight}x{plateThickness}mm</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 font-mono">Bordas: {hasBorder ? `${borderWidth}mm` : 'N/A'}</span>
+                    </div>
 
-                  {/* Summary card below 3D preview */}
-                  <div className="bg-[#181818] p-4 rounded-xl border border-slate-800 flex items-start gap-3">
-                    <Info size={18} className="text-blue-500 shrink-0 mt-0.5" />
-                    <div className="text-xs text-gray-300 space-y-1">
+                    <div className="bg-[#121422]/90 backdrop-blur-md rounded-xl border border-white/5 px-3.5 py-2 flex items-center justify-between text-[11px] text-slate-300">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                        <span className="font-semibold uppercase tracking-wider text-[10px] text-slate-400">Troca de Cor:</span>
+                        <span className="font-mono text-indigo-400 font-bold">{plateThickness} mm</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500">Adicione um pause no slicer</span>
+                    </div>
+                  </div>
+
+                  {/* THREE PREVIEW MODULE */}
+                  <div className="relative border border-white/5 rounded-2xl overflow-hidden bg-gradient-to-b from-[#0a0c12] to-[#121420] shadow-inner">
+                    <ThreePreview
+                      ref={threeRef}
+                      plateWidth={plateWidth}
+                      plateHeight={plateHeight}
+                      plateThickness={plateThickness}
+                      cornerRadius={cornerRadius}
+                      qrData={qrData}
+                      qrSizeMm={qrSizeMm}
+                      qrReliefDepth={qrReliefDepth}
+                      qrYOffset={qrYOffset}
+                      reliefType={reliefType}
+                      textReliefDepth={textReliefDepth}
+                      fontName={fontName}
+                      textLines={textLines}
+                      hasBorder={hasBorder}
+                      borderWidth={borderWidth}
+                      borderDepth={borderDepth}
+                      colorBase={colorBase}
+                      colorDetails={colorDetails}
+                    />
+                  </div>
+
+                  {/* SUMMARY INFO CARD PLACEMENT */}
+                  <div className="bg-[#10121d] p-4 rounded-xl border border-white/5 flex items-start gap-3.5">
+                    <Info size={16} className="text-blue-400 shrink-0 mt-0.5" />
+                    <div className="text-xs text-slate-300 space-y-1">
                       <p>
-                        <strong>Dica de Interação:</strong> Arraste o modelo no visualizador 3D para examinar de todos os ângulos. Use o botão <strong>Auto-rotacionar</strong> no canto inferior direito para ver a luz refletindo nos relevos estriados.
+                        <strong className="text-white">Exploração de Modelagem:</strong> Use o botão esquerdo do mouse para girar o prato 3D, o botão direito para arrastar e a roda do mouse para dar zoom. Ative a <strong className="text-blue-400">Auto-rotação</strong> no player para analisar as sombras no relevo.
                       </p>
-                      <p className="text-gray-400">
-                        Os tamanhos representam dimensões reais em milímetros. Ajuste a 'Espessura Base' e os relevos para economizar filamento!
+                      <p className="text-slate-500">
+                        Os dados fornecidos simulam as propriedades físicas reais de um bico de extrusão de 0.4mm.
                       </p>
                     </div>
                   </div>
@@ -881,82 +1122,74 @@ export default function App() {
               )}
 
               {activeTab === 'guide' && (
-                <div className="space-y-6">
+                <div className="space-y-4 animate-fadeIn">
                   {/* General Banner */}
-                  <div className="bg-[#181818] p-4 rounded-xl border border-slate-800 flex gap-3">
-                    <Printer className="text-blue-500 shrink-0 mt-0.5" size={20} />
-                    <div className="text-xs text-gray-300">
-                      <h4 className="font-semibold text-white text-sm mb-1">Guia do Maker: Truques de Fatiamento</h4>
-                      <p>
-                        Para fazer o código QR ser facilmente legível por qualquer celular, é fundamental que haja alto contraste entre a base e o relevo (ex: Base Branca com QR Preto). Abaixo, veja as duas técnicas para imprimir isso perfeitamente.
+                  <div className="bg-[#10121d] p-4 rounded-xl border border-white/5 flex gap-3">
+                    <Printer className="text-blue-400 shrink-0 mt-0.5" size={18} />
+                    <div className="text-xs text-slate-300">
+                      <h4 className="font-semibold text-white text-sm mb-1">Como fatiar e imprimir em cores:</h4>
+                      <p className="text-slate-400">
+                        Para o QR code ser lido, a base precisa contrastar severamente com os relevos. Siga os métodos abaixo para atingir este resultado:
                       </p>
                     </div>
                   </div>
 
                   {/* Method 1: Single Color printer (Filament Swapping) */}
-                  <div className="bg-[#181818] p-5 rounded-xl border border-slate-800 space-y-3">
+                  <div className="bg-[#10121d]/70 p-5 rounded-2xl border border-white/5 space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs font-bold">1</div>
-                      <h4 className="font-semibold text-white text-sm">Impressão em 1 Cor (Troca manual de Filamento)</h4>
+                      <div className="w-5 h-5 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-xs font-bold border border-blue-500/20">1</div>
+                      <h4 className="font-semibold text-white text-sm">Troca manual de Filamento (Impressoras normais)</h4>
                     </div>
-                    <p className="text-xs text-gray-300 leading-relaxed">
-                      Você <strong>não</strong> precisa de uma impressora cara com AMS (como as Bambu Lab) ou MMU para imprimir placas coloridas perfeitas! Siga este truque simples:
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Não é preciso possuir sistemas robóticos de multi-filamento (como o Bambu Lab AMS) para realizar impressões coloridas perfeitas. Faça o seguinte truque:
                     </p>
-                    <ul className="list-disc pl-5 text-xs text-gray-400 space-y-1.5">
-                      <li>Selecione o estilo <strong className="text-white">"Alto-Relevo" (Extrudado)</strong>.</li>
-                      <li>Fatie sua placa no software de fatiamento (Bambu Studio, Cura, PrusaSlicer, OrcaSlicer).</li>
-                      <li>Use a barra vertical de preview de camadas e role até achar exatamente a camada onde a base termina (ex: camada de espessura {plateThickness}mm) e a extrusão do QR Code começa.</li>
-                      <li>No Bambu Studio / Cura, clique com o botão direito na régua de camadas e selecione <strong>"Adicionar Pausa" (Add Pause)</strong> ou <strong>"Troca de Filamento" (Add Color Change / M600)</strong> nessa camada.</li>
-                      <li>Quando a impressora pausar nesse ponto de altura, puxe o filamento base (Ex: Branco), coloque o filamento de QR (Ex: Preto) e mande continuar!</li>
+                    <ul className="list-disc pl-5 text-xs text-slate-400 space-y-2">
+                      <li>Use o STL exportado configurado como <strong className="text-white">Alto-Relevo</strong>.</li>
+                      <li>Coloque no fatiador favorito (Cura, PrusaSlicer, OrcaSlicer, Bambu Studio).</li>
+                      <li>Descubra em qual camada termina a base de <strong className="text-white">{plateThickness}mm</strong> e começam os desenhos do QR.</li>
+                      <li>Clique com o botão direito na régua vertical de prévia de camadas do fatiador e escolha de acordo como <strong className="text-blue-400">"Adicionar Pausa" (Pause Layer)</strong> ou <strong className="text-blue-400">"Troca de Cor" (M600 Code)</strong>.</li>
+                      <li>Quando a impressora parar na altura correta, remova a bobina clara, conecte a preta e continue o trabalho!</li>
                     </ul>
                   </div>
 
                   {/* Method 2: Multicolor Printer (Bambu AMS) */}
-                  <div className="bg-[#181818] p-5 rounded-xl border border-slate-800 space-y-3">
+                  <div className="bg-[#10121d]/70 p-5 rounded-2xl border border-white/5 space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-bold">2</div>
-                      <h4 className="font-semibold text-white text-sm">Printers Multi-Cores (Bambu Lab AMS / Prusa MMU)</h4>
+                      <div className="w-5 h-5 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-xs font-bold border border-indigo-500/20">2</div>
+                      <h4 className="font-semibold text-white text-sm">Uso automático no Bambu AMS / Prusa MMU</h4>
                     </div>
-                    <p className="text-xs text-gray-300 leading-relaxed">
-                      Se você tem um sistema AMS inteligente, o fatiamento fica automático e extremamente limpo:
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Quem possui hardware de trocas automatizadas lida com fatiamentos programados limpos:
                     </p>
-                    <ul className="list-disc pl-5 text-xs text-gray-400 space-y-1.5">
-                      <li>Gere o código em <strong className="text-white">Alto-Relevo</strong> ou <strong className="text-white">Baixo-Relevo</strong>.</li>
-                      <li>Importe o arquivo STL gerado para o Bambu Studio.</li>
-                      <li>Use a ferramenta <strong>"Balde de Tinta" (Fill / Height Paint)</strong>.</li>
-                      <li>Mude o tipo da pintura para "Camada" (Height layer) e pinte os últimos {reliefType === 'alto' ? qrReliefDepth : borderDepth}mm a partir da superfície usando a cor correspondente.</li>
-                      <li>O software vai programar as trocas via AMS de forma otimizada para que apenas o topo seja impresso com o segundo filamento de detalhes, economizando descarga de filamento!</li>
+                    <ul className="list-disc pl-5 text-xs text-slate-400 space-y-2">
+                      <li>Importe o STL para o Bambu Studio normalmente.</li>
+                      <li>Selecione a ferramenta <strong className="text-white">"Paint" (Pintura de Altura / Balde de Tinta)</strong>.</li>
+                      <li>Configure a profundidade como "Height Range" ou balde para pegar apenas os últimos relevos volumétricos elevados acima de <strong className="text-white">{plateThickness}mm</strong>.</li>
+                      <li>Defina a cor secundária desejada do AMS e fatiar. O fatiador apenas mudará a extrusora nos topos!</li>
                     </ul>
                   </div>
 
-                  {/* Makerworld Publish Specs */}
-                  <div className="bg-blue-950/20 p-4.5 rounded-xl border border-blue-800/30 space-y-2">
-                    <h5 className="text-xs font-bold text-blue-400 flex items-center gap-1.5 uppercase">
-                      <Sparkles size={13} />
-                      Como Divulgar e Hospedar no MakerWorld Customizer?
-                    </h5>
-                    <p className="text-xs text-gray-300 leading-relaxed">
-                      Ao carregar seu modelo no MakerWorld, ative a opção <strong>"Customizer"</strong> e envie o arquivo <code className="bg-[#0a0a0a] px-1 py-0.5 rounded text-blue-400 font-mono">.scad</code> com matriz incorporada. Os servidores do Makerworld compilarão o modelo em segundos de forma interativa, permitindo aos usuários customizarem diretamente do celular ou navegador!
-                    </p>
-                  </div>
+
                 </div>
               )}
+
             </div>
           </div>
         </div>
       </main>
 
-      {/* FOOTER WRAPPER */}
-      <footer className="border-t border-slate-900 bg-[#0a0a0a] py-8 text-center text-xs text-gray-500">
-        <div className="max-w-7xl mx-auto px-4 space-y-2">
-          <p>
-            Desenvolvido para MakerWorld, Printables e entusiastas criativos de impressão 3D (FDM).
+      {/* FOOTER GENERAL AREA */}
+      <footer className="border-t border-white/5 bg-[#07070a] py-10 text-center text-xs text-slate-600">
+        <div className="max-w-7xl mx-auto px-4 space-y-2.5">
+          <p className="text-slate-500">
+            Desenvolvido exclusivamente para criadores de modelos 3D, suportando fatiamentos FDM precisos.
           </p>
-          <p className="text-[11px] text-gray-600">
-            A biblioteca de QR Code realiza conversões semânticas em tempo real. O OpenSCAD gerado utiliza overlaps estruturais para prevenir malhas não-manifólio.
+          <p className="text-[10px] text-slate-600 max-w-xl mx-auto leading-relaxed">
+            A conformidade de manifolds estruturais é assegurada pela união booleana de faces ortogonais no motor STL em tempo-real. Os modelos STL gerados atendem às especificações técnicas ISO/ASTM.
           </p>
         </div>
       </footer>
     </div>
   );
 }
+
