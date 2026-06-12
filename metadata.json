@@ -1,0 +1,6 @@
+{
+  "name": "Gerador de Placa 3D SCAD com QR Code",
+  "description": "Crie e visualize placas de identificação 3D personalizáveis com QR Code e textos em OpenSCAD para MakerWorld e impressão 3D.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
