@@ -118,7 +118,7 @@ export default function App() {
   const threeRef = useRef<any>(null);
 
   // Input States
-  const [qrLink, setQrLink] = useState('https://makerworld.com');
+  const [qrLink, setQrLink] = useState('https://www.instagram.com/mugenprint3d/');
   const [errorCorrection, setErrorCorrection] = useState<'L' | 'M' | 'Q' | 'H'>('M');
   const reliefType = 'alto'; // Forced to 'alto' per user request (Removed Baixo-Relevo option)
   const [useLibraryQr, setUseLibraryQr] = useState(false); // Default to false (Self-contained) for MakerWorld compatibility
@@ -137,27 +137,26 @@ export default function App() {
   const [hasBorder, setHasBorder] = useState(true);
   const [borderWidth, setBorderWidth] = useState(2.0);
   const [borderDepth, setBorderDepth] = useState(1.0);
-
+ 
   // QR Settings
   const [qrSizeMm, setQrSizeMm] = useState(45);
   const [qrYOffset, setQrYOffset] = useState(20);
   const [qrReliefDepth, setQrReliefDepth] = useState(1.2);
-
+ 
   // Text Settings
   const [fontName, setFontName] = useState('Inter:style=Bold');
   const [textReliefDepth, setTextReliefDepth] = useState(1.2);
   const [textLines, setTextLines] = useState<TextLine[]>([
-    { text: 'Texto Personalizado 1', fontSize: 6.0, yOffset: -18 },
-    { text: 'Texto Personalizado 2', fontSize: 5.0, yOffset: -27 },
-    { text: 'Texto Personalizado 3', fontSize: 4.5, yOffset: -35 },
+    { text: 'SIGA NO INSTAGRAM', fontSize: 5.5, yOffset: -18 },
+    { text: '@MUGENPRINT3D', fontSize: 6.5, yOffset: -28 },
   ]);
-
+ 
   // Color selection (visual only, for the 3D preview)
   const [colorBase, setColorBase] = useState('#f8fafc'); // Default: White Base
   const [colorDetails, setColorDetails] = useState('#18181b'); // Default: Black Text/QR
-
+ 
   // Derived QR Matrix Data
-  const [qrData, setQrData] = useState<QRData>(() => generateQRMatrix('https://makerworld.com', 'M'));
+  const [qrData, setQrData] = useState<QRData>(() => generateQRMatrix('https://www.instagram.com/mugenprint3d/', 'M'));
 
   // UI States
   const [copied, setCopied] = useState(false);
@@ -442,7 +441,7 @@ export default function App() {
                       onClick={() => {
                         setQrMode('text');
                         if (qrLink.startsWith('WIFI:')) {
-                          setQrLink('https://makerworld.com');
+                          setQrLink('https://www.instagram.com/mugenprint3d/');
                         }
                       }}
                       className={`py-1.5 rounded-lg text-[10px] uppercase font-bold tracking-wider transition-all duration-150 ${
